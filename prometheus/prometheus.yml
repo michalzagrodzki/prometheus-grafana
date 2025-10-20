@@ -1,0 +1,51 @@
+# Global configuration
+global:
+  scrape_interval: 5s      # How often to scrape targets (default 1m)
+  evaluation_interval: 5s   # How often to evaluate rules (default 1m)
+  
+  # Attach these labels to any time series or alerts
+  external_labels:
+    monitor: 'metrics-monitor'
+    environment: 'development'
+
+# Scrape configurations
+scrape_configs:
+  # Job 1: Scrape Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          group: 'monitoring'
+
+  # Job 2: Scrape our Node.js metrics generator
+  - job_name: 'node-metrics-app'
+    
+    # How often to scrape this specific job (overrides global)
+    scrape_interval: 2s
+    
+    # Timeout for scraping
+    scrape_timeout: 2s
+    
+    # The HTTP path where metrics are exposed
+    metrics_path: '/metrics'
+    
+    # The scheme (http or https)
+    scheme: http
+    
+    # Static targets configuration
+    static_configs:
+      - targets: ['node-app:3000']  # service-name:port (Docker Compose)
+        labels:
+          app: 'metrics-generator'
+          instance: 'node-app-1'
+          environment: 'dev'
+
+# Optional: Alerting configuration (for future use)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: []
+
+# Optional: Rule files (for recording rules and alerts)
+# rule_files:
+#   - "alert_rules.yml"´
