@@ -1,0 +1,25 @@
+{
+  "name": "prometheus-grafana",
+  "version": "1.0.0",
+  "description": "Node.js application that generates random metrics for Prometheus",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "keywords": [
+    "prometheus",
+    "metrics",
+    "monitoring",
+    "observability"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "prom-client": "^15.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
