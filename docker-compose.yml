@@ -4,7 +4,7 @@ services:
   # Node.js Metrics Generator Application
   node-app:
     build:
-      context: ./node-app
+      context: ./app
       dockerfile: Dockerfile
     container_name: metrics-generator
     ports:
