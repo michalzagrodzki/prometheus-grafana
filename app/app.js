@@ -1,8 +1,40 @@
 const express = require('express');
 const client = require('prom-client');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const PORT = 3000;
+
+// Basic JSON logger that writes to stdout and a log file for Promtail/Loki
+const logDirectory = path.join(__dirname, 'logs');
+if (!fs.existsSync(logDirectory)) {
+  fs.mkdirSync(logDirectory, { recursive: true });
+}
+
+const logStream = fs.createWriteStream(path.join(logDirectory, 'app.log'), { flags: 'a' });
+
+function writeLog(level, message, metadata = {}) {
+  const entry = {
+    timestamp: new Date().toISOString(),
+    level,
+    message,
+    ...metadata
+  };
+
+  const line = `${JSON.stringify(entry)}\n`;
+  logStream.write(line);
+  process.stdout.write(line);
+}
+
+const logger = {
+  info: (message, metadata) => writeLog('info', message, metadata),
+  error: (message, metadata) => writeLog('error', message, metadata)
+};
+
+logStream.on('error', (err) => {
+  process.stderr.write(`Logger stream error: ${err.message}\n`);
+});
 
 // Create a Registry to register metrics
 const register = new client.Registry();
@@ -82,14 +114,39 @@ function generateRandomMetrics() {
       const errorTypes = ['timeout', 'validation', 'database', 'network'];
       const randomError = errorTypes[Math.floor(Math.random() * errorTypes.length)];
       errorCounter.inc({ type: randomError });
+      logger.error('Simulated application error', {
+        endpoint: randomEndpoint,
+        errorType: randomError
+      });
     }
     
-    console.log(`[${new Date().toISOString()}] Generated metrics - Status: ${randomStatus}, Endpoint: ${randomEndpoint}, Connections: ${activeConnections}, Temp: ${temperature}°C`);
+    logger.info('Generated metrics samples', {
+      endpoint: randomEndpoint,
+      status: randomStatus,
+      connections: activeConnections,
+      temperature: parseFloat(temperature),
+      durationMs: Math.round(duration * 1000)
+    });
     
     // Schedule next random metric generation
     generateRandomMetrics();
   }, randomInterval);
 }
+
+// Request logging middleware for Loki
+app.use((req, res, next) => {
+  const start = process.hrtime.bigint();
+  res.on('finish', () => {
+    const durationMs = Number(process.hrtime.bigint() - start) / 1e6;
+    logger.info('HTTP request completed', {
+      method: req.method,
+      endpoint: req.originalUrl,
+      status: res.statusCode,
+      durationMs: Math.round(durationMs)
+    });
+  });
+  next();
+});
 
 // Metrics endpoint for Prometheus to scrape
 app.get('/metrics', async (req, res) => {
@@ -115,10 +172,19 @@ app.get('/', (req, res) => {
 
 // Start the server
 app.listen(PORT, () => {
-  console.log(`Metrics server running on port ${PORT}`);
-  console.log(`Metrics endpoint: http://localhost:${PORT}/metrics`);
-  console.log('Starting random metrics generation...');
+  logger.info('Metrics server started', { port: PORT, endpoint: '/metrics' });
+  logger.info('Starting random metrics generation loop');
   
   // Start generating random metrics
   generateRandomMetrics();
 });
+
+const shutdown = () => {
+  logger.info('Shutting down metrics server');
+  logStream.end(() => {
+    process.exit(0);
+  });
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);

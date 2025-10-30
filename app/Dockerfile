@@ -13,6 +13,9 @@ RUN npm install --omit=dev
 # Copy application code
 COPY app.js ./
 
+# Ensure log directory exists for volume mount
+RUN mkdir -p logs
+
 # Expose the port the app runs on
 EXPOSE 3000
 
