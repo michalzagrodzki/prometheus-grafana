@@ -1,5 +1,7 @@
 # Prometheus & Grafana Metrics Playground
 
+> **Work in Progress:** This reference stack currently focuses on metrics. Upcoming updates will introduce additional observability pillars such as logs, traces, profiles, and related tooling integrations.
+
 ## Purpose
 This repository packages a complete monitoring sandbox that demonstrates how a Node.js service can expose Prometheus-compatible metrics and how those metrics can be explored in Grafana. It serves as a lightweight reference for learning the basics of metrics instrumentation, scraping, and dashboarding with modern tooling.
 
